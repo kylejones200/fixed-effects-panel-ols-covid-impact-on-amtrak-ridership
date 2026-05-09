@@ -15,6 +15,20 @@ Usage:
 import logging
 
 import matplotlib
+
+from pathlib import Path
+
+
+def load_config(config_path=None):
+    """Load configuration from YAML file."""
+    if config_path is None:
+        config_path = Path(__file__).parent / 'config.yaml'
+    if not config_path.exists():
+        return {}
+    with open(config_path) as _f:
+        import yaml as _yaml
+        return _yaml.safe_load(_f) or {}
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
@@ -22,6 +36,7 @@ import pandas as pd
 from linearmodels.panel import PanelOLS
 
 from data_io import read_csv
+import yaml
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(
@@ -125,7 +140,7 @@ def plot_region_effects(effects: dict, ci: dict, out_path: str = "amtrak_panel_r
     lower_err = [abs(ci[r][0] - effects[r]) for r in regions]
     upper_err = [abs(ci[r][1] - effects[r]) for r in regions]
 
-    fig, ax = plt.subplots(figsize=(8, 5))
+    fig, ax = plt.subplots(figsize=tuple(config.get('output', {}).get('figsize', [8, 5])))
     ax.errorbar(
         regions, coefs,
         yerr=[lower_err, upper_err],
@@ -178,7 +193,7 @@ def main():
         logger.info("  %s: %.0f  [95%% CI: %.0f, %.0f]", region, effects[region], lo, hi)
 
     plot_region_effects(effects, ci)
-    print("\nOutputs: amtrak_ridership_trends.png, amtrak_panel_region_effects.png")
+    logger.info("\nOutputs: amtrak_ridership_trends.png, amtrak_panel_region_effects.png")
 
 
 if __name__ == "__main__":

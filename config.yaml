@@ -1,0 +1,8 @@
+output:
+  figures_dir: images
+  figure_format: png
+  figure_dpi: 150
+  font_family: serif
+  figsize:
+  - 8
+  - 5
