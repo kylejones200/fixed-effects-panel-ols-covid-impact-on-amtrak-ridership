@@ -134,46 +134,48 @@ def extract_region_effects(res) -> tuple[dict, dict]:
     return effects, ci
 
 
-def plot_region_effects(effects: dict, ci: dict, out_path: str = "amtrak_panel_region_effects.png"):
+def plot_region_effects(effects: dict, ci: dict, out_path: str = "amtrak_panel_region_effects.png", plot: bool = False):
     regions = ["Northeast", "Midwest", "South", "West"]
     coefs = [effects[r] for r in regions]
     lower_err = [abs(ci[r][0] - effects[r]) for r in regions]
     upper_err = [abs(ci[r][1] - effects[r]) for r in regions]
 
-    fig, ax = plt.subplots(figsize=tuple(config.get('output', {}).get('figsize', [8, 5])))
-    ax.errorbar(
-        regions, coefs,
-        yerr=[lower_err, upper_err],
-        fmt="o", color="black", capsize=5, linewidth=1.2,
-    )
-    ax.axhline(0, color="gray", linestyle="--", linewidth=0.8)
-    ax.set_title("Estimated Drop in Ridership Post-COVID by Region", fontsize=13)
-    ax.set_ylabel("Marginal Effect on Annual Ridership")
-    ax.set_xlabel("Region")
-    fig.tight_layout()
-    fig.savefig(out_path, dpi=150, bbox_inches="tight")
-    plt.close(fig)
+    if plot:
+        fig, ax = plt.subplots(figsize=tuple(config.get('output', {}).get('figsize', [8, 5])))
+        ax.errorbar(
+            regions, coefs,
+            yerr=[lower_err, upper_err],
+            fmt="o", color="black", capsize=5, linewidth=1.2,
+        )
+        ax.axhline(0, color="gray", linestyle="--", linewidth=0.8)
+        ax.set_title("Estimated Drop in Ridership Post-COVID by Region", fontsize=13)
+        ax.set_ylabel("Marginal Effect on Annual Ridership")
+        ax.set_xlabel("Region")
+        fig.tight_layout()
+        fig.savefig(out_path, dpi=150, bbox_inches="tight")
+        plt.close(fig)
     logger.info("Figure saved: %s", out_path)
 
 
-def plot_ridership_trends(df: pd.DataFrame, out_path: str = "amtrak_ridership_trends.png"):
+def plot_ridership_trends(df: pd.DataFrame, out_path: str = "amtrak_ridership_trends.png", plot: bool = False):
     annual = (
         df.reset_index()
         .groupby(["year", "region"])["Ridership"]
         .sum()
         .reset_index()
     )
-    fig, ax = plt.subplots(figsize=(10, 5))
-    for region, grp in annual.groupby("region"):
-        ax.plot(grp["year"], grp["Ridership"] / 1e6, label=region, linewidth=1.5)
-    ax.axvline(2020, color="red", linestyle="--", linewidth=0.8, label="COVID-19 (2020)")
-    ax.set_title("Annual Amtrak Ridership by Region (millions)", fontsize=13)
-    ax.set_ylabel("Ridership (millions)")
-    ax.set_xlabel("Year")
-    ax.legend(fontsize=9)
-    fig.tight_layout()
-    fig.savefig(out_path, dpi=150, bbox_inches="tight")
-    plt.close(fig)
+    if plot:
+        fig, ax = plt.subplots(figsize=(10, 5))
+        for region, grp in annual.groupby("region"):
+            ax.plot(grp["year"], grp["Ridership"] / 1e6, label=region, linewidth=1.5)
+        ax.axvline(2020, color="red", linestyle="--", linewidth=0.8, label="COVID-19 (2020)")
+        ax.set_title("Annual Amtrak Ridership by Region (millions)", fontsize=13)
+        ax.set_ylabel("Ridership (millions)")
+        ax.set_xlabel("Year")
+        ax.legend(fontsize=9)
+        fig.tight_layout()
+        fig.savefig(out_path, dpi=150, bbox_inches="tight")
+        plt.close(fig)
     logger.info("Figure saved: %s", out_path)
 
 
