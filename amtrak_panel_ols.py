@@ -12,6 +12,7 @@ Usage:
     python amtrak_panel_ols.py
 """
 
+import signalplot
 import logging
 
 import matplotlib
@@ -71,12 +72,7 @@ REGION_DEF = {
     ],
 }
 
-plt.rcParams.update({
-    "font.family": "serif",
-    "axes.spines.top": False,
-    "axes.spines.right": False,
-    "axes.linewidth": 0.8,
-})
+signalplot.apply(font_family='serif')
 
 
 def assign_region(state: str) -> str:
