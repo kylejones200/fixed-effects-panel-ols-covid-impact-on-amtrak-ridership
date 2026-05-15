@@ -12,31 +12,31 @@ Usage:
     python amtrak_panel_ols.py
 """
 
-import signalplot
 import logging
+from pathlib import Path
 
 import matplotlib
-
-from pathlib import Path
+import signalplot
 
 
 def load_config(config_path=None):
     """Load configuration from YAML file."""
     if config_path is None:
-        config_path = Path(__file__).parent / 'config.yaml'
+        config_path = Path(__file__).parent / "config.yaml"
     if not config_path.exists():
         return {}
     with open(config_path) as _f:
         import yaml as _yaml
+
         return _yaml.safe_load(_f) or {}
+
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from linearmodels.panel import PanelOLS
-
 from data_io import read_csv
+from linearmodels.panel import PanelOLS
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(
@@ -51,27 +51,67 @@ DATA_URL = (
 
 REGION_DEF = {
     "Northeast": [
-        "Connecticut", "Maine", "Massachusetts", "New Hampshire", "Rhode Island",
-        "Vermont", "New Jersey", "New York", "Pennsylvania",
+        "Connecticut",
+        "Maine",
+        "Massachusetts",
+        "New Hampshire",
+        "Rhode Island",
+        "Vermont",
+        "New Jersey",
+        "New York",
+        "Pennsylvania",
     ],
     "Midwest": [
-        "Indiana", "Illinois", "Michigan", "Ohio", "Wisconsin",
-        "Iowa", "Kansas", "Minnesota", "Missouri", "Nebraska",
-        "North Dakota", "South Dakota",
+        "Indiana",
+        "Illinois",
+        "Michigan",
+        "Ohio",
+        "Wisconsin",
+        "Iowa",
+        "Kansas",
+        "Minnesota",
+        "Missouri",
+        "Nebraska",
+        "North Dakota",
+        "South Dakota",
     ],
     "South": [
-        "Delaware", "Florida", "Georgia", "Maryland", "North Carolina",
-        "South Carolina", "Virginia", "West Virginia", "Alabama", "Kentucky",
-        "Mississippi", "Tennessee", "Arkansas", "Louisiana", "Oklahoma",
-        "Texas", "District of Columbia",
+        "Delaware",
+        "Florida",
+        "Georgia",
+        "Maryland",
+        "North Carolina",
+        "South Carolina",
+        "Virginia",
+        "West Virginia",
+        "Alabama",
+        "Kentucky",
+        "Mississippi",
+        "Tennessee",
+        "Arkansas",
+        "Louisiana",
+        "Oklahoma",
+        "Texas",
+        "District of Columbia",
     ],
     "West": [
-        "Arizona", "Colorado", "Idaho", "Montana", "Nevada", "New Mexico",
-        "Utah", "Wyoming", "Alaska", "California", "Hawaii", "Oregon", "Washington",
+        "Arizona",
+        "Colorado",
+        "Idaho",
+        "Montana",
+        "Nevada",
+        "New Mexico",
+        "Utah",
+        "Wyoming",
+        "Alaska",
+        "California",
+        "Hawaii",
+        "Oregon",
+        "Washington",
     ],
 }
 
-signalplot.apply(font_family='serif')
+signalplot.apply(font_family="serif")
 
 
 def assign_region(state: str) -> str:
@@ -129,18 +169,29 @@ def extract_region_effects(res) -> tuple[dict, dict]:
     return effects, ci
 
 
-def plot_region_effects(effects: dict, ci: dict, out_path: str = "amtrak_panel_region_effects.png", plot: bool = False):
+def plot_region_effects(
+    effects: dict,
+    ci: dict,
+    out_path: str = "amtrak_panel_region_effects.png",
+    plot: bool = False,
+):
     regions = ["Northeast", "Midwest", "South", "West"]
     coefs = [effects[r] for r in regions]
     lower_err = [abs(ci[r][0] - effects[r]) for r in regions]
     upper_err = [abs(ci[r][1] - effects[r]) for r in regions]
 
     if plot:
-        fig, ax = plt.subplots(figsize=tuple(config.get('output', {}).get('figsize', [8, 5])))
+        fig, ax = plt.subplots(
+            figsize=tuple(config.get("output", {}).get("figsize", [8, 5]))
+        )
         ax.errorbar(
-            regions, coefs,
+            regions,
+            coefs,
             yerr=[lower_err, upper_err],
-            fmt="o", color="black", capsize=5, linewidth=1.2,
+            fmt="o",
+            color="black",
+            capsize=5,
+            linewidth=1.2,
         )
         ax.axhline(0, color="gray", linestyle="--", linewidth=0.8)
         ax.set_title("Estimated Drop in Ridership Post-COVID by Region", fontsize=13)
@@ -152,18 +203,19 @@ def plot_region_effects(effects: dict, ci: dict, out_path: str = "amtrak_panel_r
     logger.info("Figure saved: %s", out_path)
 
 
-def plot_ridership_trends(df: pd.DataFrame, out_path: str = "amtrak_ridership_trends.png", plot: bool = False):
+def plot_ridership_trends(
+    df: pd.DataFrame, out_path: str = "amtrak_ridership_trends.png", plot: bool = False
+):
     annual = (
-        df.reset_index()
-        .groupby(["year", "region"])["Ridership"]
-        .sum()
-        .reset_index()
+        df.reset_index().groupby(["year", "region"])["Ridership"].sum().reset_index()
     )
     if plot:
         fig, ax = plt.subplots(figsize=(10, 5))
         for region, grp in annual.groupby("region"):
             ax.plot(grp["year"], grp["Ridership"] / 1e6, label=region, linewidth=1.5)
-        ax.axvline(2020, color="red", linestyle="--", linewidth=0.8, label="COVID-19 (2020)")
+        ax.axvline(
+            2020, color="red", linestyle="--", linewidth=0.8, label="COVID-19 (2020)"
+        )
         ax.set_title("Annual Amtrak Ridership by Region (millions)", fontsize=13)
         ax.set_ylabel("Ridership (millions)")
         ax.set_xlabel("Year")
@@ -187,10 +239,14 @@ def main():
     effects, ci = extract_region_effects(res)
     for region in sorted(effects):
         lo, hi = ci[region]
-        logger.info("  %s: %.0f  [95%% CI: %.0f, %.0f]", region, effects[region], lo, hi)
+        logger.info(
+            "  %s: %.0f  [95%% CI: %.0f, %.0f]", region, effects[region], lo, hi
+        )
 
     plot_region_effects(effects, ci)
-    logger.info("\nOutputs: amtrak_ridership_trends.png, amtrak_panel_region_effects.png")
+    logger.info(
+        "\nOutputs: amtrak_ridership_trends.png, amtrak_panel_region_effects.png"
+    )
 
 
 if __name__ == "__main__":
