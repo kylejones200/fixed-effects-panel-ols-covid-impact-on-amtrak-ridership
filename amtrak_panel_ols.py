@@ -37,7 +37,6 @@ import pandas as pd
 from linearmodels.panel import PanelOLS
 
 from data_io import read_csv
-import yaml
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(
