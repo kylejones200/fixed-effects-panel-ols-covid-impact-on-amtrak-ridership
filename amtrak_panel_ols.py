@@ -16,7 +16,13 @@ import logging
 from pathlib import Path
 
 import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 import signalplot
+from linearmodels.panel import PanelOLS
+
+from data_io import read_csv
 
 
 def load_config(config_path=None):
@@ -32,11 +38,7 @@ def load_config(config_path=None):
 
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-from data_io import read_csv
-from linearmodels.panel import PanelOLS
+
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(
@@ -127,14 +129,11 @@ def load_and_prepare(url: str) -> pd.DataFrame:
     df["year"] = df["Year"].dt.year
     df["Ridership"] = pd.to_numeric(df["Ridership"], errors="coerce")
     df = df.dropna(subset=["Ridership"])
-
     df["post_covid"] = (df["year"] >= 2020).astype(int)
     df["t"] = df["year"] - 2005
-
     station_meta = df.drop_duplicates("Station")[["Station", "State"]].copy()
     station_meta["region"] = station_meta["State"].apply(assign_region)
     df = df.merge(station_meta[["Station", "region"]], on="Station", how="left")
-
     df = df[df["region"] != "Other"]
     df = df.set_index(["Station", "year"]).sort_index()
     return df
@@ -151,7 +150,6 @@ def fit_panel_model(df: pd.DataFrame):
 def extract_region_effects(res) -> tuple[dict, dict]:
     baseline = res.params["post_covid"]
     se_baseline = res.std_errors["post_covid"]
-
     regions = ["Midwest", "Northeast", "South", "West"]
     effects, ci = {}, {}
     for region in regions:
@@ -179,11 +177,8 @@ def plot_region_effects(
     coefs = [effects[r] for r in regions]
     lower_err = [abs(ci[r][0] - effects[r]) for r in regions]
     upper_err = [abs(ci[r][1] - effects[r]) for r in regions]
-
     if plot:
-        fig, ax = plt.subplots(
-            figsize=tuple(config.get("output", {}).get("figsize", [8, 5]))
-        )
+        fig, ax = plt.subplots(figsize=tuple(config.get("output", {}).get("figsize", [8, 5])))
         ax.errorbar(
             regions,
             coefs,
@@ -206,16 +201,12 @@ def plot_region_effects(
 def plot_ridership_trends(
     df: pd.DataFrame, out_path: str = "amtrak_ridership_trends.png", plot: bool = False
 ):
-    annual = (
-        df.reset_index().groupby(["year", "region"])["Ridership"].sum().reset_index()
-    )
+    annual = df.reset_index().groupby(["year", "region"])["Ridership"].sum().reset_index()
     if plot:
         fig, ax = plt.subplots(figsize=(10, 5))
         for region, grp in annual.groupby("region"):
             ax.plot(grp["year"], grp["Ridership"] / 1e6, label=region, linewidth=1.5)
-        ax.axvline(
-            2020, color="red", linestyle="--", linewidth=0.8, label="COVID-19 (2020)"
-        )
+        ax.axvline(2020, color="red", linestyle="--", linewidth=0.8, label="COVID-19 (2020)")
         ax.set_title("Annual Amtrak Ridership by Region (millions)", fontsize=13)
         ax.set_ylabel("Ridership (millions)")
         ax.set_xlabel("Year")
@@ -230,23 +221,16 @@ def main():
     logger.info("Loading Amtrak ridership data...")
     df = load_and_prepare(DATA_URL)
     logger.info("Panel shape: %s stations × years", df.shape)
-
     plot_ridership_trends(df)
-
     logger.info("Fitting Panel OLS with region × COVID interaction...")
     res = fit_panel_model(df)
-
     effects, ci = extract_region_effects(res)
     for region in sorted(effects):
         lo, hi = ci[region]
-        logger.info(
-            "  %s: %.0f  [95%% CI: %.0f, %.0f]", region, effects[region], lo, hi
-        )
+        logger.info("  %s: %.0f  [95%% CI: %.0f, %.0f]", region, effects[region], lo, hi)
 
     plot_region_effects(effects, ci)
-    logger.info(
-        "\nOutputs: amtrak_ridership_trends.png, amtrak_panel_region_effects.png"
-    )
+    logger.info("\nOutputs: amtrak_ridership_trends.png, amtrak_panel_region_effects.png")
 
 
 if __name__ == "__main__":
